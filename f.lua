@@ -114,6 +114,86 @@ function fl:CreateToggle(p, cfg)
 
     return t
 end
+function fl:CreateSlider(p, cfg)
+    local t = Instance.new("TextLabel")
+    t.Name = cfg.title
+    t.Size = UDim2.new(1, 0, 0, 30)
+    t.BackgroundTransparency = 0
+    t.Text = cfg.title
+    t.BorderSizePixel = 0
+    t.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    t.TextColor3 = Color3.fromRGB(255, 255, 255)
+    t.TextScaled = true
+    t.Font = Enum.Font.RobotoMono
+    t.Parent = p
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 30)
+    sliderFrame.Position = UDim2.new(0, 0, 0, 30)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = p
+
+    local sliderBar = Instance.new("Frame")
+    sliderBar.Size = UDim2.new(0.5, 0, 1, 0) 
+    sliderBar.BackgroundColor3 = Color3.fromRGB(85, 170, 85)
+    sliderBar.BorderSizePixel = 0
+    sliderBar.Parent = sliderFrame
+
+    
+    local sliderButton = Instance.new("ImageButton")
+    sliderButton.Size = UDim2.new(0, 20, 1, 0)
+    sliderButton.Position = UDim2.new(0.5, -10, 0, 0) 
+    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    sliderButton.BorderSizePixel = 0
+    sliderButton.Parent = sliderFrame
+
+    
+    local dragging = false
+
+    sliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+
+    sliderButton.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            local x = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X)
+            sliderButton.Position = UDim2.new(x / sliderFrame.AbsoluteSize.X, -10, 0, 0)
+            sliderBar.Size = UDim2.new(x / sliderFrame.AbsoluteSize.X, 0, 1, 0)
+            if cfg.callback then
+                cfg.callback(x / sliderFrame.AbsoluteSize.X)
+            end
+        end
+    end)
+
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local x = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X)
+            sliderButton.Position = UDim2.new(x / sliderFrame.AbsoluteSize.X, -10, 0, 0)
+            sliderBar.Size = UDim2.new(x / sliderFrame.AbsoluteSize.X, 0, 1, 0)
+            if cfg.callback then
+                cfg.callback(x / sliderFrame.AbsoluteSize.X)
+            end
+        end
+    end)
+    
+    return t, sliderFrame
+end
 
 function fl:AdjustFrameSize(f)
     local cf = f:FindFirstChild("ContentFrame")
@@ -157,48 +237,50 @@ fl:CreateButton(cf1, {
     end
 })
 
+local cfg = {
+    Title = "exploits",
+    Drag = true,
+    LineColor = Color3.fromRGB(255, 255, 255)
+}
+local mf2, cf2 = fl:CreateUI(cfg)
+
 local ESPEnabled = false
 
 local function toggleESP(enabled)
     ESPEnabled = enabled
     if ESPEnabled then
-        enableESP()
+        for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = player.Character
+                highlight.Parent = game.Workspace
+            end
+        end
+        game:GetService("Players").PlayerAdded:Connect(function(player)
+            if ESPEnabled then
+                player.CharacterAdded:Connect(function(character)
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = character
+                    highlight.Parent = game.Workspace
+                end)
+            end
+        end)
     else
-        disableESP()
-    end
-end
-
-local function enableESP()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local highlight = Instance.new("Highlight")
-            highlight.Adornee = player.Character
-            highlight.Parent = game.Workspace
+        for _, highlight in pairs(game.Workspace:GetChildren()) do
+            if highlight:IsA("Highlight") then
+                highlight:Destroy()
+            end
         end
     end
 end
 
-local function disableESP()
-    for _, highlight in pairs(game.Workspace:GetChildren()) do
-        if highlight:IsA("Highlight") then
-            highlight:Destroy()
-        endf
-    end
-end
-
-local cfg1 = {
-    Title = "exploits",
-    Drag = true,
-    LineColor = Color3.fromRGB(255, 255, 255)
-}
-local mf1, cfg1 = fl.CreateUI(cfg1)
-
-fl.CreateToggle(cfg1, {
+fl:CreateToggle(cf2, {
     title = "ESP Player",
     callback = function(state)
         toggleESP(state)
     end
 })
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -241,9 +323,78 @@ local function toggleSpin(enabled)
     end
 end
 
-fl.CreateToggle(cfg1, {
+fl:CreateToggle(cf2, {
     title = "Spin Player",
     callback = function(state)
         toggleSpin(state)
+    end
+})
+
+-- 添加 Walk Jump 功能
+local WalkJumpEnabled = false
+
+local function enableWalkJump()
+    WalkJumpEnabled = true
+end
+
+local function disableWalkJump()
+    WalkJumpEnabled = false
+end
+
+local function onPlayerMove()
+    if WalkJumpEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                local humanoid = player.Character.Humanoid
+                if humanoid.MoveDirection.Magnitude > 0 then
+                    humanoid.Jump = true
+                end
+            end
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(onPlayerMove)
+
+local function toggleWalkJump(enabled)
+    if enabled then
+        enableWalkJump()
+    else
+        disableWalkJump()
+    end
+end
+
+fl:CreateToggle(cf2, {
+    title = "Walk Jump",
+    callback = function(state)
+        toggleWalkJump(state)
+    end
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local WalkSpeedValue = 16
+
+local function setWalkSpeed(value)
+    WalkSpeedValue = value 
+end
+
+RunService.Heartbeat:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoidRootPart = player.Character.HumanoidRootPart
+            if player.Character:FindFirstChild("Humanoid").MoveDirection.Magnitude > 0 then
+                local moveDirection = player.Character.Humanoid.MoveDirection * WalkSpeedValue
+                humanoidRootPart.Velocity = Vector3.new(moveDirection.X, humanoidRootPart.Velocity.Y, moveDirection.Z)
+            end
+        end
+    end
+end)
+
+fl:CreateSlider(cf2, {
+    title = "Velocity Walk Speed",
+    callback = function(value)
+        setWalkSpeed(value)
     end
 })
