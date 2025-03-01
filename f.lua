@@ -187,15 +187,63 @@ local function disableESP()
 end
 
 local cfg1 = {
-    Title = "ESP",
+    Title = "exploits",
     Drag = true,
     LineColor = Color3.fromRGB(255, 255, 255)
 }
-local mf1, cf1 = fl.CreateUI(cfg1)
+local mf1, cfg1 = fl.CreateUI(cfg1)
 
-lib.CreateToggle(cf1, {
+fl.CreateToggle(cfg1, {
     title = "ESP Player",
     callback = function(state)
         toggleESP(state)
+    end
+})
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local SpinEnabled = false
+local SpinVelocity = Vector3.new(0, 50, 0)
+
+local function enableSpin()
+    SpinEnabled = true
+end
+
+local function disableSpin()
+    SpinEnabled = false
+end
+
+local function onHeartbeat()
+    if SpinEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local rootPart = player.Character.HumanoidRootPart
+                rootPart.RotVelocity = SpinVelocity
+            end
+        end
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local rootPart = player.Character.HumanoidRootPart
+                rootPart.RotVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(onHeartbeat)
+
+local function toggleSpin(enabled)
+    if enabled then
+        enableSpin()
+    else
+        disableSpin()
+    end
+end
+
+fl.CreateToggle(cfg1, {
+    title = "Spin Player",
+    callback = function(state)
+        toggleSpin(state)
     end
 })
