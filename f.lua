@@ -182,7 +182,7 @@ local function disableESP()
     for _, highlight in pairs(game.Workspace:GetChildren()) do
         if highlight:IsA("Highlight") then
             highlight:Destroy()
-        end
+        endf
     end
 end
 
@@ -191,7 +191,7 @@ local cfg1 = {
     Drag = true,
     LineColor = Color3.fromRGB(255, 255, 255)
 }
-local mf1, cf1 = lib.CreateUI(cfg1)
+local mf1, cf1 = fl.CreateUI(cfg1)
 
 lib.CreateToggle(cf1, {
     title = "ESP Player",
